@@ -14,6 +14,9 @@ hits=$(grep -nE '^\s*(public|protected|private)?\s*static\s+(\??[A-Za-z_\\]+\s+)
 {
   echo "Octane warning (octane-ready): static properties in $file:"
   echo "$hits"
-  echo "Under Octane, static state survives between requests. If it holds per-request data (user, tenant, locale, request, results), use \$app->scoped() or pass it as an argument. If it is a bounded, immutable lookup, ignore this."
+  if grep -qE 'spl_object_(id|hash)' "$file"; then
+    echo "This file also uses spl_object_id/spl_object_hash. PHP reuses object ids after an object is freed, so a static memo keyed by the Request's id can return the previous request's value. Use \$app->scoped() or \$request->attributes instead."
+  fi
+  echo "Under Octane, static state survives between requests. If it holds per-request data (user, tenant, actor, locale, request, results), use \$app->scoped() or pass it as an argument; a reset in one middleware is not enough unless every path that reads it runs that middleware. If it is a bounded, immutable lookup, ignore this."
 } >&2
 exit 2
