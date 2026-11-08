@@ -1,0 +1,21 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read|Edit|Write",
+        "hooks": [
+          { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/protect-env.sh" }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/octane-guard.sh" },
+          { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/pint-on-edit.sh" }
+        ]
+      }
+    ]
+  }
+}
