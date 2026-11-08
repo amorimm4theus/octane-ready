@@ -1,6 +1,6 @@
 {
   "name": "octane-ready",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Make Laravel apps Octane-ready with Claude Code: migrate Lumen to Laravel Octane, audit Swoole state leaks, review and test with Pest.",
   "author": {
     "name": "Matheus Amorim",

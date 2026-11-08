@@ -11,6 +11,8 @@ Rules:
 - Prefer feature tests through HTTP (`getJson`, `postJson`) and assert status, JSON shape and database side effects (`assertDatabaseHas`).
 - Cover the happy path, validation errors (422), authorization (403/404) and one edge case per endpoint.
 - Use factories; never depend on seed data or test order.
-- For Octane-sensitive code, simulate worker reuse inside one test: make request A, call `app()->forgetScopedInstances()`, make request B without A's headers, and assert nothing leaked.
+- For Octane-sensitive code, simulate worker reuse inside one test: make request A, call `app()->forgetScopedInstances()`, make request B without A's headers, and assert nothing leaked. Static properties are not reset between the two calls, exactly like in a real worker.
+- Make request B as a **different** user or tenant, and on a route that does not run the code path that resets the state (for example a GET when the reset lives in a write-only middleware).
+- When the code memoizes by `spl_object_id`/`spl_object_hash`, id reuse is not deterministic in tests. Reproduce the worst case directly: resolve the value with one Request object as user A, switch the authenticated user to B while the same Request instance stays bound (that is what an id collision looks like to the code), resolve again and assert it is B.
 - Name tests by behavior: `it('does not leak the tenant to the next request')`.
 - Run the tests (`php artisan test --filter=...` or `vendor/bin/pest`) and fix them until they pass. If a test fails because the code is wrong, stop and report the bug instead of bending the test.

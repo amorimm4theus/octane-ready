@@ -30,11 +30,11 @@ claude plugin install octane-ready@octane-ready
 | Skill | `/octane-ready:migrate-lumen` | Migra um app Lumen para Laravel passo a passo, compara as respostas e opcionalmente liga o Octane |
 | Skill | `/octane-ready:octane-audit` | Audita o projeto atrás de bugs de worker de longa duração e corrige com testes quando pedido (`--fix`) |
 | Skill | `/octane-ready:laravel-claude-md` | Escreve um `CLAUDE.md` com a stack e os comandos reais do projeto (junta com o do Laravel Boost) |
-| Agente | `octane-auditor` | Análise só de leitura: estado da requisição em `static`, singletons que guardam o Request, caches estáticos sem limite |
+| Agente | `octane-auditor` | Análise só de leitura: estado da requisição em `static`, memos indexados por id de objeto, estado limpo só em alguns caminhos, singletons que guardam o Request, caches por worker e sem limite, config do Octane |
 | Agente | `laravel-reviewer` | Revisão do diff só de leitura: N+1, autorização, validação, transação e lock, segurança no Octane |
 | Agente | `pest-writer` | Escreve testes Pest, inclusive "requisição A, depois requisição B no mesmo worker" |
 | Hook | `protect-env` | Impede ler ou escrever arquivos `.env` (o `.env.example` é liberado) |
-| Hook | `octane-guard` | Em apps com `laravel/octane`, avisa o Claude logo depois que ele escreve uma propriedade estática em `app/` |
+| Hook | `octane-guard` | Em apps com `laravel/octane`, avisa o Claude logo depois que ele escreve uma propriedade estática em `app/`, com aviso extra para memos indexados por `spl_object_id` |
 | Hook | `pint-on-edit` | Formata cada arquivo PHP editado com o Pint do projeto |
 
 Funciona junto com o [Laravel Boost](https://github.com/laravel/boost): o Boost cobre as diretrizes gerais do Laravel, este kit fica focado em migração e workers de longa duração. Os hooks só precisam de `php` no PATH.
