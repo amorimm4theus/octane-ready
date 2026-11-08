@@ -80,7 +80,7 @@ HTTP request
   └─ ResolveTenant middleware ──> TenantContext        (scoped: new per request)
        └─ Controller (thin)
             ├─ StoreOrderRequest                       (validation)
-            ├─ PlaceOrder action                       (transaction + row locks)
+            ├─ PlaceOrder action                       (transaction + atomic update)
             │     └─ InsufficientStock exception       (renders 422 JSON)
             └─ ProductResource ──> PriceFormatter      (singleton, stateless)
 ```
@@ -94,7 +94,8 @@ Every decision has an [Architecture Decision Record](docs/adr) (also [in Portugu
 | [Keep the Lumen API contract](docs/adr/0001-keep-the-public-api-contract.md) (same URLs, no `data` wrapper) | Changing the framework and the contract at once doubles the risk. Clients do not change, rollback is a load balancer switch. |
 | [Request state is scoped, services are stateless](docs/adr/0002-request-state-is-scoped-services-are-stateless.md) | `$app->scoped()` is flushed by Octane between requests. Stateless singletons are safe to share and trivial to unit test. |
 | [Tests emulate worker reuse](docs/adr/0003-tests-emulate-worker-reuse.md) | Two requests on one app instance, resetting what Octane resets. Leaks fail in milliseconds in CI, no Swoole needed. |
-| [Orders through an Action with row locks](docs/adr/0004-orders-use-an-action-with-row-locks.md) | `lockForUpdate()` inside one transaction: two concurrent orders cannot sell the last unit twice. The Action is reusable from jobs and commands. |
+| [Orders through an Action](docs/adr/0004-orders-use-an-action-with-row-locks.md) | One transaction per order, so a multi-item order is all or nothing. The Action is reusable from jobs and commands. |
+| [Atomic conditional stock update](docs/adr/0008-atomic-conditional-stock-update.md) | `UPDATE ... WHERE stock >= ?` checks and decrements in one statement: two concurrent orders cannot sell the last unit twice, without holding a lock from the read. |
 | [Honest benchmark](docs/adr/0005-benchmark-methodology.md) | Tuned FPM baseline (OPcache, static workers), same limits, warm-up, raw output committed. |
 | [Skills, agents and hooks](docs/adr/0006-plugin-skills-agents-hooks.md) | Skills for workflows the user starts, read-only agents for analysis, hooks for rules that must not depend on the model remembering them. |
 | [Quality gates](docs/adr/0007-quality-gates.md) | Strict types, final classes, `Model::shouldBeStrict()`, Larastan level 8, Pint, Pest architecture tests, all in CI. |
@@ -104,7 +105,7 @@ Every decision has an [Architecture Decision Record](docs/adr) (also [in Portugu
 - **TDD**: the contract and the leaks were written as failing tests before the code that satisfies them (see the commit table).
 - **SOLID**: validation (`StoreOrderRequest`), business rule (`PlaceOrder`), presentation (`ProductResource`) and request state (`TenantContext`) each have one reason to change. Dependencies come in through constructors or method parameters.
 - **Clean code**: small final classes, named constants instead of magic strings, test names that read as behavior (`it('does not leak the tenant to the next request')`).
-- **Performance**: no per-request work that can be done once per worker; eager loading (`with('items.product')`) and N+1 detection in development; indexed tenant columns; row locks only where money and stock change.
+- **Performance**: no per-request work that can be done once per worker; eager loading (`with('items.product')`) and N+1 detection in development; indexed tenant columns; stock checked and decremented in a single atomic statement.
 - **Security**: tenant scoping on every query, validated input, no mass assignment of unvalidated data, `.env` blocked for the AI by a hook.
 
 ## Benchmark
@@ -138,7 +139,7 @@ docker compose exec octane php artisan migrate --seed --force
 ```bash
 cd examples/octane-api
 composer install --ignore-platform-req=ext-swoole
-vendor/bin/pest                 # 24 tests: contract, worker reuse, architecture, unit
+vendor/bin/pest                 # 25 tests: contract, worker reuse, architecture, unit
 vendor/bin/phpstan analyse      # Larastan level 8
 vendor/bin/pint --test          # code style
 ../../tests/hooks/run.sh        # plugin hook tests

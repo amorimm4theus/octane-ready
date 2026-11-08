@@ -2,6 +2,8 @@
 
 [English](../0004-orders-use-an-action-with-row-locks.md)
 
+> Substituído em parte pelo [0008](0008-baixa-de-estoque-com-update-atomico.md): o lock de linha deu lugar a um update atômico condicional.
+
 ## Contexto
 O controller do Lumen validava a entrada, abria a transação, conferia o estoque e montava a resposta num método só. Dois pedidos ao mesmo tempo podiam ler "1 em estoque" e os dois darem certo.
 

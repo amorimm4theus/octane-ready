@@ -80,7 +80,7 @@ Requisição HTTP
   └─ middleware ResolveTenant ──> TenantContext        (scoped: novo a cada requisição)
        └─ Controller (enxuto)
             ├─ StoreOrderRequest                       (validação)
-            ├─ action PlaceOrder                       (transação + lock de linha)
+            ├─ action PlaceOrder                       (transação + update atômico)
             │     └─ exceção InsufficientStock         (vira resposta 422 em JSON)
             └─ ProductResource ──> PriceFormatter      (singleton, sem estado)
 ```
@@ -94,7 +94,8 @@ Cada decisão tem um [registro de decisão de arquitetura (ADR)](docs/adr/pt-BR)
 | [Manter o contrato da API do Lumen](docs/adr/pt-BR/0001-manter-o-contrato-da-api.md) (mesmas URLs, sem envelope `data`) | Trocar o framework e o contrato ao mesmo tempo dobra o risco. Os clientes não mudam e voltar atrás é trocar o destino no load balancer. |
 | [Estado da requisição é scoped, serviços sem estado](docs/adr/pt-BR/0002-estado-da-requisicao-e-scoped-servicos-sem-estado.md) | O Octane limpa o `$app->scoped()` entre requisições. Singletons sem estado são seguros para compartilhar e fáceis de testar. |
 | [Testes simulam o reuso do worker](docs/adr/pt-BR/0003-testes-simulam-reuso-do-worker.md) | Duas requisições na mesma instância do app, limpando o que o Octane limpa. O vazamento falha em milissegundos no CI, sem precisar do Swoole. |
-| [Pedidos por Action com lock de linha](docs/adr/pt-BR/0004-pedidos-por-action-com-lock-de-linha.md) | `lockForUpdate()` dentro de uma transação: dois pedidos ao mesmo tempo não vendem a última unidade duas vezes. A Action pode ser usada por jobs e comandos. |
+| [Pedidos por Action](docs/adr/pt-BR/0004-pedidos-por-action-com-lock-de-linha.md) | Uma transação por pedido, então um pedido com vários itens é tudo ou nada. A Action pode ser usada por jobs e comandos. |
+| [Baixa de estoque com update atômico](docs/adr/pt-BR/0008-baixa-de-estoque-com-update-atomico.md) | `UPDATE ... WHERE stock >= ?` confere e baixa num comando só: dois pedidos ao mesmo tempo não vendem a última unidade duas vezes, sem travar a linha desde a leitura. |
 | [Benchmark honesto](docs/adr/pt-BR/0005-metodologia-do-benchmark.md) | Base com FPM otimizado (OPcache, workers fixos), mesmos limites, aquecimento e saída bruta publicada. |
 | [Skills, agentes e hooks](docs/adr/pt-BR/0006-plugin-skills-agentes-hooks.md) | Skills para fluxos que o usuário inicia, agentes só de leitura para análise, hooks para regras que não podem depender do modelo lembrar. |
 | [Portões de qualidade](docs/adr/pt-BR/0007-portoes-de-qualidade.md) | Tipos estritos, classes finais, `Model::shouldBeStrict()`, Larastan nível 8, Pint e testes de arquitetura do Pest, tudo no CI. |
@@ -104,7 +105,7 @@ Cada decisão tem um [registro de decisão de arquitetura (ADR)](docs/adr/pt-BR)
 - **TDD**: o contrato e os vazamentos foram escritos como testes que falham antes do código que os faz passar (veja a tabela de commits).
 - **SOLID**: validação (`StoreOrderRequest`), regra de negócio (`PlaceOrder`), apresentação (`ProductResource`) e estado da requisição (`TenantContext`) têm, cada um, um único motivo para mudar. As dependências entram pelo construtor ou por parâmetro de método.
 - **Código limpo**: classes pequenas e finais, constantes com nome em vez de texto solto, nomes de teste que descrevem comportamento (`it('does not leak the tenant to the next request')`).
-- **Performance**: nada por requisição que possa ser feito uma vez por worker; eager loading (`with('items.product')`) e detecção de N+1 em desenvolvimento; colunas de tenant com índice; lock de linha só onde dinheiro e estoque mudam.
+- **Performance**: nada por requisição que possa ser feito uma vez por worker; eager loading (`with('items.product')`) e detecção de N+1 em desenvolvimento; colunas de tenant com índice; estoque conferido e baixado num único comando atômico.
 - **Segurança**: filtro por tenant em toda consulta, entrada validada, nada de mass assignment com dado não validado, `.env` bloqueado para a IA por um hook.
 
 ## Benchmark
@@ -138,7 +139,7 @@ docker compose exec octane php artisan migrate --seed --force
 ```bash
 cd examples/octane-api
 composer install --ignore-platform-req=ext-swoole
-vendor/bin/pest                 # 24 testes: contrato, reuso do worker, arquitetura, unitários
+vendor/bin/pest                 # 25 testes: contrato, reuso do worker, arquitetura, unitários
 vendor/bin/phpstan analyse      # Larastan nível 8
 vendor/bin/pint --test          # estilo de código
 ../../tests/hooks/run.sh        # testes dos hooks do plugin

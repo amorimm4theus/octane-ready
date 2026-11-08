@@ -15,7 +15,7 @@
 ## Rules
 - This app runs on Octane (long-lived workers). Never keep request data (user, tenant, locale, request) in static properties or singletons. Use `$app->scoped()` or pass values as arguments.
 - Use Form Requests for validation and policies for authorization.
-- Money and stock changes go inside `DB::transaction` with `lockForUpdate()`.
+- Money and stock changes go inside `DB::transaction`. For a single counter use an atomic conditional update (`where('stock', '>=', $q)->decrement(...)` and check affected rows); use `lockForUpdate()` when several values decide together.
 - Every new endpoint gets a Pest feature test (happy path, 422, 403/404).
 - Use `config()` in code; `env()` only inside `config/*.php`.
 - Never read or print `.env` or secrets.

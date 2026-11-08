@@ -2,6 +2,8 @@
 
 [Português](pt-BR/0004-pedidos-por-action-com-lock-de-linha.md)
 
+> Partially superseded by [0008](0008-atomic-conditional-stock-update.md): the row lock was replaced by an atomic conditional update.
+
 ## Context
 The Lumen controller validated input, opened a transaction, checked stock and built the response in one method. Two concurrent orders could both read "1 in stock" and both succeed.
 

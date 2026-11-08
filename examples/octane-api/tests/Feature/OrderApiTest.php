@@ -41,6 +41,26 @@ it('rejects the whole order when one item has no stock', function () {
         ->and(Order::count())->toBe(0);
 });
 
+it('never sells below zero when another order takes the stock after it was read', function () {
+    $book = Product::factory()->create(['tenant' => 'acme', 'stock' => 1]);
+
+    // Simulates a concurrent order: the row changes right after this request reads it.
+    Product::retrieved(function (Product $product) use ($book): void {
+        if ($product->is($book)) {
+            Product::query()->whereKey($book->id)->update(['stock' => 0]);
+        }
+    });
+
+    $this->postJson('/orders', [
+        'customer_email' => 'ana@example.com',
+        'items' => [['product_id' => $book->id, 'quantity' => 1]],
+    ], asTenant('acme'))
+        ->assertUnprocessable()
+        ->assertJsonPath('message', "Not enough stock for {$book->sku}: requested 1, available 0.");
+
+    expect(Order::count())->toBe(0);
+});
+
 it('validates the payload', function () {
     $this->postJson('/orders', ['customer_email' => 'not-an-email', 'items' => []], asTenant('acme'))
         ->assertUnprocessable()
