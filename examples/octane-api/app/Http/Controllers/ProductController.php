@@ -1,52 +1,43 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
+use App\Http\Resources\ProductResource;
 use App\Models\Product;
 use App\Support\PriceFormatter;
 use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-class ProductController extends Controller
+final class ProductController extends Controller
 {
-    public function __construct(private PriceFormatter $formatter) {}
+    private const PER_PAGE = 20;
 
-    public function index(Request $request, TenantContext $tenant): JsonResponse
+    public function __construct(private readonly TenantContext $tenant) {}
+
+    public function index(Request $request): JsonResponse
     {
-        $locale = PriceFormatter::localeFrom($request->header('Accept-Language'));
-
         $products = Product::query()
-            ->where('tenant', $tenant->id())
-            ->when($request->query('search'), fn ($q, $s) => $q->where('name', 'like', "%{$s}%"))
+            ->forTenant($this->tenant->id())
+            ->search($request->string('search')->toString())
             ->orderBy('id')
-            ->paginate(20);
+            ->paginate(self::PER_PAGE);
 
         return response()->json([
-            'tenant' => $tenant->id(),
-            'locale' => $locale,
-            'data' => collect($products->items())->map(fn (Product $p) => $this->present($p, $locale)),
+            'tenant' => $this->tenant->id(),
+            'locale' => PriceFormatter::localeFrom($request->header('Accept-Language')),
+            'data' => ProductResource::collection($products->items()),
             'page' => $products->currentPage(),
             'total' => $products->total(),
         ]);
     }
 
-    public function show(Request $request, TenantContext $tenant, int $id): JsonResponse
+    public function show(int $id): ProductResource
     {
-        $product = Product::where('tenant', $tenant->id())->findOrFail($id);
-        $locale = PriceFormatter::localeFrom($request->header('Accept-Language'));
-
-        return response()->json($this->present($product, $locale));
-    }
-
-    private function present(Product $product, string $locale): array
-    {
-        return [
-            'id' => $product->id,
-            'sku' => $product->sku,
-            'name' => $product->name,
-            'price' => $this->formatter->format($product->price_cents, $locale),
-            'stock' => $product->stock,
-        ];
+        return ProductResource::make(
+            Product::query()->forTenant($this->tenant->id())->findOrFail($id)
+        );
     }
 }

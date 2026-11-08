@@ -8,7 +8,7 @@ use App\Http\Controllers\ProductController;
 use Illuminate\Support\Facades\Route;
 
 // Same URLs as the Lumen app (no /api prefix), so clients and the benchmark do not change.
-Route::get('/health', [HealthController::class, 'show']);
+Route::get('/health', HealthController::class);
 
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/{id}', [ProductController::class, 'show'])->whereNumber('id');

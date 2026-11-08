@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Controllers;
+declare(strict_types=1);
 
-use Illuminate\Foundation\Validation\ValidatesRequests;
+namespace App\Http\Controllers;
 
 abstract class Controller
 {
-    use ValidatesRequests;
+    //
 }
