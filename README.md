@@ -7,7 +7,7 @@
 
 **Make Laravel apps Octane-ready with Claude Code.** Migrate Lumen to Laravel + Octane, catch the state leaks that only appear under Swoole, and prove it with tests and a reproducible benchmark.
 
-[Leia em português](README.pt-BR.md) · [Website and tutorial](https://amorimm4theus.github.io/octane-ready/)
+[Leia em português](README.pt-BR.md) · [Website and tutorial](https://amorim-co.de/octane-ready) (Portuguese)
 
 ---
 
@@ -178,7 +178,7 @@ hooks/ scripts/   protect-env, octane-guard, pint-on-edit
 templates/        CLAUDE.md template for Laravel projects
 examples/         lumen-api (legacy) and octane-api (migrated)
 benchmark/        docker compose, k6 scenarios, leak check, raw results
-site/             GitHub Pages website (English and pt-BR)
+site/             redirect to amorim-co.de/octane-ready (old GitHub Pages address)
 docs/adr/         architecture decision records (English and pt-BR)
 tests/hooks/      tests for the hook scripts
 ```

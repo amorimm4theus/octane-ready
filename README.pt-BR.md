@@ -7,7 +7,7 @@
 
 **Deixe apps Laravel prontos para o Octane com Claude Code.** Migre de Lumen para Laravel + Octane, encontre os vazamentos de estado que só aparecem no Swoole e prove com testes e um benchmark que você mesmo roda.
 
-[Read in English](README.md) · [Site e tutorial](https://amorimm4theus.github.io/octane-ready/pt-BR/)
+[Read in English](README.md) · [Site e tutorial](https://amorim-co.de/octane-ready)
 
 ---
 
@@ -178,7 +178,7 @@ hooks/ scripts/   protect-env, octane-guard, pint-on-edit
 templates/        modelo de CLAUDE.md para projetos Laravel
 examples/         lumen-api (legado) e octane-api (migrado)
 benchmark/        docker compose, cenários k6, checagem de vazamento, resultados brutos
-site/             site no GitHub Pages (inglês e português)
+site/             redireciona para amorim-co.de/octane-ready (endereço antigo do GitHub Pages)
 docs/adr/         registros de decisão de arquitetura (inglês e pt-BR)
 tests/hooks/      testes dos scripts dos hooks
 ```
