@@ -1,0 +1,3 @@
+CREATE DATABASE IF NOT EXISTS octane;
+GRANT ALL PRIVILEGES ON lumen.* TO 'bench'@'%';
+GRANT ALL PRIVILEGES ON octane.* TO 'bench'@'%';

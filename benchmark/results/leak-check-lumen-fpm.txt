@@ -1,0 +1,3 @@
+PASS tenant: request without header got 'public'
+PASS locale: pt-BR request got pt_BR
+PASS memory: static cache has 0 entries

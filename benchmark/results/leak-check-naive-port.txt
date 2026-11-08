@@ -1,0 +1,3 @@
+FAIL tenant: request without header got 'acme' (leaked from a previous request)
+PASS locale: pt-BR request got pt_BR
+FAIL memory: static cache grew to 2001 entries and never shrinks
