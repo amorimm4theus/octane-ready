@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>octane-ready · Laravel pronto para o Octane</title>
+<meta name="description" content="Ache os bugs que só aparecem no Laravel Octane: estado da requisição vazando entre usuários, caches que nunca diminuem. Skills para Claude Code, Codex, Cursor, Gemini CLI e Copilot.">
+<link rel="canonical" href="https://amorimm4theus.github.io/octane-ready/pt-BR/">
+<link rel="alternate" hreflang="en" href="https://amorimm4theus.github.io/octane-ready/">
+<link rel="alternate" hreflang="pt-BR" href="https://amorimm4theus.github.io/octane-ready/pt-BR/">
+<meta property="og:title" content="octane-ready · Laravel pronto para o Octane">
+<meta property="og:description" content="Ache os bugs que só aparecem no Laravel Octane antes dos seus usuários.">
+<meta property="og:url" content="https://amorimm4theus.github.io/octane-ready/pt-BR/">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="pt_BR">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23e8402f'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='16' font-weight='700' fill='white' text-anchor='middle'%3EO%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap">
+    <a class="brand" href="#top"><span class="brand-mark">O</span>octane-ready</a>
+    <div class="nav-links">
+      <a class="hide-sm" href="#problema">Por quê</a>
+      <a class="hide-sm" href="#instalar">Instalar</a>
+      <a class="hide-sm" href="#tutorial">Tutorial</a>
+      <a class="hide-sm" href="https://github.com/amorimm4theus/octane-ready">GitHub</a>
+      <a class="lang" href="../" hreflang="en" lang="en">English</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap">
+    <span class="eyebrow">Open source · MIT · Laravel 13 + Octane</span>
+    <h1>Seu Laravel <em>pronto para o Octane</em></h1>
+    <p class="lead">No Laravel Octane, um worker atende milhares de requisições. Código que foi seguro por anos pode mostrar os dados de um usuário para outro. Ache esses bugs antes dos seus usuários.</p>
+
+    <div class="prompt">
+      <div class="prompt-head">
+        <span class="dots"><i></i><i></i><i></i></span>
+        <span>Cole em qualquer agente de código, no seu projeto Laravel</span>
+        <button class="copy" data-copy="#hero-prompt" data-done="Copiado!" data-fail="Selecione e copie">Copiar</button>
+      </div>
+<pre id="hero-prompt">Audite este projeto Laravel procurando bugs que só aparecem no Laravel Octane, onde um worker atende muitas requisições e o estado pode vazar entre usuários. Siga este checklist, só lendo o código: https://raw.githubusercontent.com/amorimm4theus/octane-ready/main/skills/octane-audit/references/auditor.md
+Não altere nenhum código. Mostre primeiro os achados críticos com arquivo:linha e depois o que você conferiu e está seguro.</pre>
+    </div>
+
+    <div class="harnesses" aria-label="Funciona com">
+      <span>Claude Code</span><span>Codex</span><span>Cursor</span><span>Gemini CLI</span><span>GitHub Copilot</span><span>OpenCode</span>
+    </div>
+
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="https://github.com/amorimm4theus/octane-ready">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 17.3l-6.2 3.7 1.6-7L2 9.2l7.1-.6L12 2l2.9 6.6 7.1.6-5.4 4.8 1.6 7z"/></svg>
+        Dê uma estrela no GitHub <span class="star-count" data-stars hidden></span>
+      </a>
+      <a class="btn" href="#instalar">Instalar as skills</a>
+    </div>
+    <p class="hero-note">Se ele achou alguma coisa no seu app, uma estrela ajuda outros devs Laravel a encontrarem também.</p>
+  </div>
+</header>
+
+<section class="alt" id="problema">
+  <div class="wrap">
+    <p class="kicker">O problema em 30 segundos</p>
+    <h2>O bug que o PHP-FPM esconde e o Octane mostra</h2>
+    <p class="section-lead">O Octane deixa o Laravel rápido porque sobe o app uma vez por worker, e não uma vez por requisição. O detalhe é a memória: o que você guarda numa propriedade <code>static</code> continua lá na próxima requisição.</p>
+
+    <div class="grid grid-2 compare">
+      <div class="card good">
+        <h3>PHP-FPM: cada requisição começa do zero</h3>
+        <p>O processo esquece tudo depois de cada requisição, então estado <code>static</code> não faz mal.</p>
+        <ul class="timeline">
+          <li>Requisição 1 · tenant <b>acme</b> → static = acme</li>
+          <li>memória limpa</li>
+          <li class="fine">Requisição 2 · sem tenant → static = public ✓</li>
+        </ul>
+      </div>
+      <div class="card bad">
+        <h3>Octane: um worker, milhares de requisições</h3>
+        <p>O worker continua vivo. O static da requisição 1 ainda está lá na requisição 2.</p>
+        <ul class="timeline">
+          <li>Requisição 1 · tenant <b>acme</b> → static = acme</li>
+          <li>mesmo worker, mesma memória</li>
+          <li class="leak">Requisição 2 · sem tenant → static = acme ✗</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="grid grid-2" style="margin-top:18px">
+<pre class="code"><span class="c">// Código legado: funcionou por anos no PHP-FPM</span>
+class TenantContext
+{
+    <span class="r">private static ?string $tenant = null;</span>
+
+    public static function set(string $t): void
+    {
+        self::$tenant = $t;
+    }
+}</pre>
+<pre class="code"><span class="c">$ ./leak-check.sh   # port ingênuo, servidor Swoole real</span>
+<span class="r">FAIL tenant: request without header got 'acme'</span>
+<span class="r">FAIL memory: static cache grew to 2001 entries</span>
+
+<span class="c">$ ./leak-check.sh   # depois da correção</span>
+<span class="g">PASS tenant: request without header got 'public'</span>
+<span class="g">PASS memory: static cache has 0 entries</span></pre>
+    </div>
+  </div>
+</section>
+
+<section id="o-que-vem">
+  <div class="wrap">
+    <p class="kicker">O que vem no kit</p>
+    <h2>Três skills, três agentes, três hooks</h2>
+    <p class="section-lead">As skills usam o formato aberto Agent Skills e funcionam em qualquer agente que o suporte. Agentes e hooks são uma proteção a mais para quem usa o Claude Code.</p>
+    <div class="grid grid-3">
+      <div class="card"><span class="tag">skill</span><h3>octane-audit</h3><p>Acha estado que sobrevive entre requisições, explica por que vaza e, se você pedir, corrige com um teste que falha primeiro.</p></div>
+      <div class="card"><span class="tag">skill</span><h3>migrate-lumen</h3><p>Leva um app Lumen para o Laravel passo a passo, com as mesmas rotas e respostas, e depois liga o Octane com segurança.</p></div>
+      <div class="card"><span class="tag">skill</span><h3>laravel-claude-md</h3><p>Escreve um CLAUDE.md ou AGENTS.md com a stack, os comandos e as convenções reais do projeto. Nada de comando inventado.</p></div>
+      <div class="card"><span class="tag">agente · Claude Code</span><h3>octane-auditor</h3><p>Análise só de leitura. Devolve uma tabela de achados com gravidade e a lista do que conferiu e está seguro.</p></div>
+      <div class="card"><span class="tag">agente · Claude Code</span><h3>laravel-reviewer · pest-writer</h3><p>Revisa diffs procurando N+1, autorização e race conditions. Escreve testes Pest que simulam o reuso do worker.</p></div>
+      <div class="card"><span class="tag">hooks · Claude Code</span><h3>octane-guard · protect-env · pint</h3><p>Avisa na hora em que a IA escreve uma propriedade static, impede que ela leia o <code>.env</code> e formata cada arquivo editado.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="alt" id="instalar">
+  <div class="wrap">
+    <p class="kicker">Instalar</p>
+    <h2>Escolha o seu agente</h2>
+    <p class="section-lead">Leva um minuto. Nada muda no seu código até você pedir uma correção.</p>
+
+    <div class="tabs" role="tablist" aria-label="Agente">
+      <button class="tab" role="tab" aria-selected="true" aria-controls="tab-claude">Claude Code</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="tab-skills">Codex, Cursor, Gemini, Copilot</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="tab-manual">Cópia manual</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="tab-none">Sem instalar</button>
+    </div>
+
+    <div class="panel" id="tab-claude" role="tabpanel">
+      <p>Kit completo: skills, agentes e hooks. Rode no terminal:</p>
+      <div class="cmd">
+        <button class="copy" data-copy="#cmd-claude" data-done="Copiado!" data-fail="Selecione e copie">Copiar</button>
+<pre class="code" id="cmd-claude">claude plugin marketplace add amorimm4theus/octane-ready
+claude plugin install octane-ready@octane-ready</pre>
+      </div>
+      <p>Depois abra o Claude Code no seu projeto e digite <code>/octane-ready:octane-audit</code>.</p>
+    </div>
+
+    <div class="panel" id="tab-skills" role="tabpanel" hidden>
+      <p>Instala as três skills nos agentes que você escolher, usando a CLI comunitária <code>skills</code>. Precisa de Node.js.</p>
+      <div class="cmd">
+        <button class="copy" data-copy="#cmd-skills" data-done="Copiado!" data-fail="Selecione e copie">Copiar</button>
+<pre class="code" id="cmd-skills">npx skills add amorimm4theus/octane-ready</pre>
+      </div>
+      <p>Depois peça ao seu agente: <code>Use a skill octane-audit neste projeto.</code></p>
+    </div>
+
+    <div class="panel" id="tab-manual" role="tabpanel" hidden>
+      <p>Cada skill é uma pasta autocontida. Copie para a pasta de skills do seu agente, por exemplo <code>.claude/skills/</code> ou <code>.agents/skills/</code> (confira na documentação do seu agente).</p>
+      <div class="cmd">
+        <button class="copy" data-copy="#cmd-manual" data-done="Copiado!" data-fail="Selecione e copie">Copiar</button>
+<pre class="code" id="cmd-manual">git clone --depth 1 https://github.com/amorimm4theus/octane-ready /tmp/octane-ready
+mkdir -p .agents/skills
+cp -r /tmp/octane-ready/skills/* .agents/skills/</pre>
+      </div>
+    </div>
+
+    <div class="panel" id="tab-none" role="tabpanel" hidden>
+      <p>Cole o prompt do topo desta página em qualquer agente de código que consiga ler uma URL. Ele segue o mesmo checklist da skill, só lendo o código.</p>
+      <p><a class="btn" href="#top">Ir para o prompt</a></p>
+    </div>
+  </div>
+</section>
+
+<section id="tutorial">
+  <div class="wrap">
+    <p class="kicker">Tutorial</p>
+    <h2>Sua primeira auditoria, passo a passo</h2>
+    <p class="section-lead">Exemplo com o Claude Code. Em outros agentes os passos são os mesmos, só muda o jeito de chamar a skill.</p>
+
+    <div class="steps">
+      <div class="step"><div>
+        <h3>Abra o projeto</h3>
+        <p>Vá para a raiz de um app Laravel que usa o Octane, ou que você pretende levar para o Octane.</p>
+        <pre class="code">cd ~/projetos/minha-api-laravel
+claude</pre>
+      </div></div>
+
+      <div class="step"><div>
+        <h3>Rode a auditoria</h3>
+        <p>Sem <code>--fix</code> ela só lê o código. Leva alguns minutos num app grande.</p>
+        <pre class="code">/octane-ready:octane-audit</pre>
+      </div></div>
+
+      <div class="step"><div>
+        <h3>Leia o relatório</h3>
+        <p>Os críticos vêm primeiro. Cada achado diz onde está, por que vaza e como corrigir. Você também recebe a lista "conferido e seguro", para saber que a auditoria foi completa e não só um grep.</p>
+        <p><small>Exemplo de relatório (nomes de arquivo encurtados):</small></p>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Onde</th><th>Padrão</th><th>Gravidade</th><th>Correção</th></tr></thead>
+          <tbody>
+            <tr><td><code>Support/CurrentActor.php:17</code></td><td>Memo static indexado por <code>spl_object_id($request)</code>. O PHP reaproveita ids, então a próxima requisição recebe o usuário anterior.</td><td><span class="sev crit">crítico</span></td><td><code>$app-&gt;scoped()</code></td></tr>
+            <tr><td><code>Support/Catalog.php:44</code></td><td>Catálogo static limpo só no worker que fez a edição.</td><td><span class="sev med">médio</span></td><td><code>Cache::remember</code> + TTL</td></tr>
+            <tr><td><code>Support/SearchCache.php:12</code></td><td>Array static indexado pela busca, cresce para sempre.</td><td><span class="sev high">alto</span></td><td>Cache com limite</td></tr>
+          </tbody>
+        </table></div>
+      </div></div>
+
+      <div class="step"><div>
+        <h3>Corrija com teste primeiro</h3>
+        <p>Peça a correção. Para cada achado crítico ele escreve um teste Pest que simula duas requisições no mesmo worker, mostra o teste falhando, corrige o código e mostra o teste passando.</p>
+        <pre class="code">/octane-ready:octane-audit --fix</pre>
+      </div></div>
+
+      <div class="step"><div>
+        <h3>Coloque a rede de segurança</h3>
+        <p>Reinicie os workers de tempos em tempos, para que um vazamento que passou não cresça para sempre. É rede de segurança, não é a correção.</p>
+        <pre class="code">php artisan octane:start --workers=8 --max-requests=1000</pre>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<section class="alt" id="o-que-pega">
+  <div class="wrap">
+    <p class="kicker">O que ele pega</p>
+    <h2>Padrões que parecem seguros e não são</h2>
+    <div class="grid grid-3">
+      <div class="card"><h3>Dado da requisição em static</h3><p>Usuário, tenant, idioma ou operador numa propriedade <code>static</code>. A próxima requisição herda.</p></div>
+      <div class="card"><h3>Memo indexado por id de objeto</h3><p><code>spl_object_id($request)</code> parece isolado por requisição, mas o PHP reaproveita ids quando o objeto é liberado.</p></div>
+      <div class="card"><h3>Limpeza só em alguns caminhos</h3><p>Limpo num middleware de escrita, lido em rotas GET que nunca limpam.</p></div>
+      <div class="card"><h3>Singletons que guardam o Request</h3><p>Resolvidos no boot ou no <code>octane.warm</code>, ficam com a primeira requisição para sempre.</p></div>
+      <div class="card"><h3>Cache por worker</h3><p>O <code>forget()</code> limpa um worker só. Os outros continuam servindo dado velho.</p></div>
+      <div class="card"><h3>Caches que nunca diminuem</h3><p>Arrays static indexados por URL, usuário ou busca crescem até o worker morrer.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="prova">
+  <div class="wrap">
+    <p class="kicker">Prova, não promessa</p>
+    <h2>Um exemplo completo que você mesmo roda</h2>
+    <p class="section-lead">O repositório migra uma API legada em Lumen para Laravel 13 + Octane, um commit por etapa: testes de contrato, um port ingênuo que vaza, testes que expõem o vazamento, a correção. Depois, um benchmark honesto contra um PHP-FPM bem configurado.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Cenário</th><th>Lumen no PHP-FPM</th><th>Laravel 13 Octane</th></tr></thead>
+      <tbody>
+        <tr><td>Produto por id, vazão</td><td>569 req/s</td><td><strong>1000 req/s</strong> (1,8x)</td></tr>
+        <tr><td>Produto por id, latência p50</td><td>87 ms</td><td><strong>20 ms</strong></td></tr>
+        <tr><td>Listagem paginada, latência p95</td><td>186 ms</td><td><strong>102 ms</strong></td></tr>
+      </tbody>
+    </table></div>
+    <p class="hero-note" style="text-align:left">Mesmo banco, mesmos dados, mesmos 2 CPUs. A saída bruta e o setup de um comando estão <a href="https://github.com/amorimm4theus/octane-ready/tree/main/benchmark">no repositório</a>.</p>
+  </div>
+</section>
+
+<section class="alt" id="faq">
+  <div class="wrap">
+    <p class="kicker">Perguntas frequentes</p>
+    <h2>Dúvidas</h2>
+    <details><summary>Ele altera o meu código?</summary><p>Não. A auditoria só lê. Ela só altera código quando você roda com <code>--fix</code> ou aprova uma correção, e aí escreve primeiro um teste que falha.</p></details>
+    <details><summary>Preciso do Swoole instalado?</summary><p>Não. A auditoria lê o código. Os testes que ela escreve simulam o reuso do worker dentro da sua suíte normal, então rodam no CI sem Swoole.</p></details>
+    <details><summary>Funciona junto com o Laravel Boost?</summary><p>Sim. O Boost cobre as diretrizes gerais do Laravel. Este kit foca em migração e workers de longa duração.</p></details>
+    <details><summary>Vale para queue workers?</summary><p>Sim. <code>queue:work</code> e o Horizon também são processos de longa duração, então as mesmas regras valem para código que roda em jobs.</p></details>
+    <details><summary>Como removo?</summary><p>Claude Code: <code>claude plugin uninstall octane-ready@octane-ready</code>. Outros agentes: apague as três pastas de skill.</p></details>
+  </div>
+</section>
+
+<section class="cta">
+  <div class="wrap">
+    <div class="card">
+      <h2>Ele achou alguma coisa?</h2>
+      <p>Uma estrela é o jeito mais fácil de agradecer e ajuda outros devs Laravel a encontrarem o projeto. Issues e pull requests são bem-vindos.</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="https://github.com/amorimm4theus/octane-ready">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 17.3l-6.2 3.7 1.6-7L2 9.2l7.1-.6L12 2l2.9 6.6 7.1.6-5.4 4.8 1.6 7z"/></svg>
+          Dê uma estrela no GitHub <span class="star-count" data-stars hidden></span>
+        </a>
+        <a class="btn" href="https://github.com/amorimm4theus/octane-ready/issues">Abrir uma issue</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>Licença MIT · Feito por <a href="https://amorim-co.de">Matheus Amorim</a></span>
+    <span><a href="https://github.com/amorimm4theus/octane-ready">GitHub</a> · <a href="../" hreflang="en">English</a></span>
+  </div>
+</footer>
+
+<script src="../assets/app.js"></script>
+</body>
+</html>
