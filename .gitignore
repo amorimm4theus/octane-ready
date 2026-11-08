@@ -1,0 +1,9 @@
+vendor/
+node_modules/
+.env
+*.sqlite
+.phpunit.result.cache
+storage/logs/*.log
+storage/framework/**/*
+!storage/framework/**/.gitignore
+bootstrap/cache/*.php
