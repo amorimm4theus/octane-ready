@@ -1,0 +1,12 @@
+{
+  "name": "octane-ready",
+  "owner": { "name": "Matheus Amorim", "url": "https://amorim-co.de" },
+  "description": "Claude Code kit for Laravel teams",
+  "plugins": [
+    {
+      "name": "octane-ready",
+      "source": "./",
+      "description": "Migrate Lumen to Laravel Octane, audit Octane/Swoole state leaks, review and test Laravel code."
+    }
+  ]
+}
