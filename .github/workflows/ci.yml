@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  octane-api:
+    name: Octane API (Pest, Pint, Larastan)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: examples/octane-api
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_sqlite, pcntl
+          coverage: none
+
+      - name: Cache Composer packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache/files
+          key: composer-${{ hashFiles('examples/octane-api/composer.lock') }}
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist --ignore-platform-req=ext-swoole
+
+      - name: Prepare environment
+        run: cp .env.example .env && php artisan key:generate
+
+      - name: Code style (Pint)
+        run: vendor/bin/pint --test
+
+      - name: Static analysis (Larastan level 8)
+        run: vendor/bin/phpstan analyse --no-progress --memory-limit=1G
+
+      - name: Tests (Pest)
+        run: vendor/bin/pest
+
+  plugin:
+    name: Plugin (hooks, scripts, manifests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - name: Manifests are valid JSON
+        run: |
+          for f in .claude-plugin/plugin.json .claude-plugin/marketplace.json hooks/hooks.json; do
+            jq empty "$f" && echo "ok $f"
+          done
+
+      - name: ShellCheck
+        run: shellcheck scripts/*.sh tests/hooks/run.sh benchmark/*.sh
+
+      - name: Hook tests
+        run: tests/hooks/run.sh
