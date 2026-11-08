@@ -1,5 +1,7 @@
 # Architecture Decision Records
 
+[Português](pt-BR/README.md)
+
 Short records of the decisions behind this repository: context, decision, consequences.
 
 | # | Decision |

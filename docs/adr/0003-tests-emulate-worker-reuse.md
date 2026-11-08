@@ -1,5 +1,7 @@
 # 0003. Tests emulate Octane worker reuse; a black-box check confirms it
 
+[Português](pt-BR/0003-testes-simulam-reuso-do-worker.md)
+
 ## Context
 A normal Laravel test boots a fresh application per test, which hides leaks between requests. Running Swoole inside the test suite would be slow and flaky.
 

@@ -1,5 +1,7 @@
 # 0002. Request state is scoped, services are stateless
 
+[Português](pt-BR/0002-estado-da-requisicao-e-scoped-servicos-sem-estado.md)
+
 ## Context
 Under PHP-FPM the process memory is discarded after every request. Under Octane one worker serves thousands of requests, so a `static` property or a singleton that captured the `Request` keeps the previous request's data. The legacy code had three such cases: the tenant in a static property, a static array used as a cache, and a singleton holding the `Request`.
 

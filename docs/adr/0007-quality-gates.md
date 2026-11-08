@@ -1,5 +1,7 @@
 # 0007. Quality gates
 
+[Português](pt-BR/0007-portoes-de-qualidade.md)
+
 ## Decision
 - `declare(strict_types=1)` in every class (enforced by an architecture test).
 - Classes are `final` unless designed for extension; dependencies are injected through constructors or method parameters, never pulled from globals.

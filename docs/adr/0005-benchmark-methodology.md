@@ -1,5 +1,7 @@
 # 0005. Benchmark methodology
 
+[Português](pt-BR/0005-metodologia-do-benchmark.md)
+
 ## Context
 Octane benchmarks online often compare a tuned Octane server with an untuned FPM (no OPcache, `validate_timestamps=1`, dynamic workers), or report a single best run. The numbers look impressive and do not transfer to real apps.
 

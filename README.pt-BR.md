@@ -1,6 +1,9 @@
 # octane-ready
 
 [![CI](https://github.com/amorimm4theus/octane-ready/actions/workflows/ci.yml/badge.svg)](https://github.com/amorimm4theus/octane-ready/actions/workflows/ci.yml)
+![PHP 8.4](https://img.shields.io/badge/PHP-8.4-777BB4)
+![Laravel 13](https://img.shields.io/badge/Laravel-13-FF2D20)
+![Licença MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-green)
 
 **Deixe apps Laravel prontos para o Octane com Claude Code.** Migre de Lumen para Laravel + Octane, encontre os vazamentos de estado que só aparecem no Swoole e prove com testes e um benchmark que você mesmo roda.
 
@@ -8,14 +11,14 @@
 
 ---
 
-O Octane tira o bootstrap do framework de cada requisição. O detalhe: no PHP-FPM cada requisição começa do zero, no Octane o mesmo worker atende milhares de requisições. Código que guardava dado da requisição numa propriedade `static` funcionou por anos e vira **um cliente vendo dado de outro cliente**.
+Levar uma API PHP para o Laravel Octane tira o bootstrap do framework de cada requisição. O detalhe: no PHP-FPM cada requisição começa do zero, no Octane um worker atende milhares de requisições. Código que guardava dado da requisição numa propriedade `static` funcionou por anos e vira **um cliente vendo os dados de outro cliente**.
 
 O repositório tem duas partes:
 
 1. **Um plugin do Claude Code** com skills, agentes e hooks para essa migração.
-2. **Um exemplo completo** contado pelo histórico de commits: API legada em Lumen, port ingênuo que vaza, testes que expõem o vazamento, correção, refatoração e benchmark.
+2. **Um exemplo completo** contado pelo histórico de commits: uma API legada em Lumen, um port ingênuo que vaza, testes que expõem os vazamentos, a correção, uma refatoração e um benchmark que você mesmo roda.
 
-## Instalação
+## Instalar o plugin
 
 ```bash
 claude plugin marketplace add amorimm4theus/octane-ready
@@ -26,52 +29,136 @@ claude plugin install octane-ready@octane-ready
 |---|---|---|
 | Skill | `/octane-ready:migrate-lumen` | Migra um app Lumen para Laravel passo a passo, compara as respostas e opcionalmente liga o Octane |
 | Skill | `/octane-ready:octane-audit` | Audita o projeto atrás de bugs de worker de longa duração e corrige com testes quando pedido (`--fix`) |
-| Skill | `/octane-ready:laravel-claude-md` | Escreve um `CLAUDE.md` com a stack e os comandos reais do projeto |
-| Agente | `octane-auditor` | Análise somente leitura: estado em `static`, singletons que guardam o Request, caches estáticos sem limite |
-| Agente | `laravel-reviewer` | Revisão do diff: N+1, autorização, validação, transação e lock, segurança no Octane |
+| Skill | `/octane-ready:laravel-claude-md` | Escreve um `CLAUDE.md` com a stack e os comandos reais do projeto (junta com o do Laravel Boost) |
+| Agente | `octane-auditor` | Análise só de leitura: estado da requisição em `static`, singletons que guardam o Request, caches estáticos sem limite |
+| Agente | `laravel-reviewer` | Revisão do diff só de leitura: N+1, autorização, validação, transação e lock, segurança no Octane |
 | Agente | `pest-writer` | Escreve testes Pest, inclusive "requisição A, depois requisição B no mesmo worker" |
-| Hook | `protect-env` | Impede ler ou escrever `.env` (o `.env.example` é liberado) |
-| Hook | `octane-guard` | Em apps com `laravel/octane`, avisa o Claude assim que ele escreve uma propriedade `static` em `app/` |
+| Hook | `protect-env` | Impede ler ou escrever arquivos `.env` (o `.env.example` é liberado) |
+| Hook | `octane-guard` | Em apps com `laravel/octane`, avisa o Claude logo depois que ele escreve uma propriedade estática em `app/` |
 | Hook | `pint-on-edit` | Formata cada arquivo PHP editado com o Pint do projeto |
 
-Funciona junto com o [Laravel Boost](https://github.com/laravel/boost).
+Funciona junto com o [Laravel Boost](https://github.com/laravel/boost): o Boost cobre as diretrizes gerais do Laravel, este kit fica focado em migração e workers de longa duração. Os hooks só precisam de `php` no PATH.
 
-## O exemplo, commit a commit
+## O exemplo
+
+[`examples/lumen-api`](examples/lumen-api) é uma pequena API de loja multi-tenant em Lumen 10, escrita do jeito que muito código legado é escrito:
+
+```php
+class TenantContext
+{
+    private static ?string $tenant = null;          // dado da requisição numa propriedade static
+    public static function set(string $t): void { self::$tenant = $t; }
+    public static function id(): string { return self::$tenant ?? 'public'; }
+}
+```
+
+[`examples/octane-api`](examples/octane-api) é a mesma API em Laravel 13 + Octane (Swoole). Leia o histórico com `git log --oneline --reverse`. Cada etapa é um commit:
 
 | Etapa | Commit | Estado |
 |---|---|---|
-| 1 | `feat(lumen-api)` API legada | Lumen no PHP-FPM funcionando |
-| 2 | `test(octane-api)` contrato da API | **vermelho**: nada portado ainda |
-| 3 | `feat(octane-api)` port do código como está | contrato **verde** |
-| 4 | `test(octane-api)` reproduz os vazamentos | **vermelho**: tenant, locale e cache vazam |
-| 5 | `fix(octane-api)` estado da requisição fora de static e singleton | **verde** |
+| 1 | `feat(lumen-api)` base legada | Lumen no PHP-FPM, funcionando |
+| 2 | `test(octane-api)` contrato público da API | **vermelho**: nada portado ainda |
+| 3 | `feat(octane-api)` port do código do Lumen como está | contrato **verde** |
+| 4 | `test(octane-api)` reproduz os vazamentos entre requisições | **vermelho**: tenant, idioma e cache vazam |
+| 5 | `fix(octane-api)` tira o estado da requisição de static e singleton | **verde** |
 | 6 | `refactor(octane-api)` Form Request, Action, API Resource | continua verde, controllers enxutos |
-| 7 | `test(octane-api)` regras de arquitetura | estado estático e controller gordo quebram o build |
+| 7 | `test(octane-api)` regras de arquitetura | estado estático e controller gordo agora quebram o build |
 
-## Decisões de arquitetura
+O port ingênuo contra o servidor Swoole de verdade ([`benchmark/leak-check.sh`](benchmark/leak-check.sh)):
 
-Cada decisão tem um [ADR](docs/adr) com contexto e consequências:
+```
+FAIL tenant: request without header got 'acme' (leaked from a previous request)
+FAIL memory: static cache grew to 2001 entries and never shrinks
+```
 
-- **Contrato da API mantido** (mesmas URLs, sem wrapper `data`): trocar framework e contrato ao mesmo tempo dobra o risco.
-- **Estado da requisição é `scoped`, serviços não têm estado**: o Octane limpa os `scoped` entre requisições; singletons sem estado são seguros e fáceis de testar.
-- **Testes simulam o reuso do worker**: duas requisições na mesma instância, limpando o que o Octane limpa. O vazamento quebra o CI em milissegundos.
-- **Pedido via Action com lock de linha**: `lockForUpdate()` dentro da transação, dois pedidos simultâneos não vendem a última unidade duas vezes.
-- **Benchmark honesto**: FPM com OPcache e workers fixos, mesmos limites, aquecimento e saída bruta publicada.
-- **Qualidade no CI**: `strict_types`, classes `final`, `Model::shouldBeStrict()`, Larastan nível 8, Pint e testes de arquitetura do Pest.
+Depois da correção, todas as checagens passam ([`benchmark/results`](benchmark/results)).
+
+## Arquitetura
+
+```
+Requisição HTTP
+  └─ middleware ResolveTenant ──> TenantContext        (scoped: novo a cada requisição)
+       └─ Controller (enxuto)
+            ├─ StoreOrderRequest                       (validação)
+            ├─ action PlaceOrder                       (transação + lock de linha)
+            │     └─ exceção InsufficientStock         (vira resposta 422 em JSON)
+            └─ ProductResource ──> PriceFormatter      (singleton, sem estado)
+```
+
+### Decisões e por quê
+
+Cada decisão tem um [registro de decisão de arquitetura (ADR)](docs/adr/pt-BR) com contexto e consequências. Em resumo:
+
+| Decisão | Por quê |
+|---|---|
+| [Manter o contrato da API do Lumen](docs/adr/pt-BR/0001-manter-o-contrato-da-api.md) (mesmas URLs, sem envelope `data`) | Trocar o framework e o contrato ao mesmo tempo dobra o risco. Os clientes não mudam e voltar atrás é trocar o destino no load balancer. |
+| [Estado da requisição é scoped, serviços sem estado](docs/adr/pt-BR/0002-estado-da-requisicao-e-scoped-servicos-sem-estado.md) | O Octane limpa o `$app->scoped()` entre requisições. Singletons sem estado são seguros para compartilhar e fáceis de testar. |
+| [Testes simulam o reuso do worker](docs/adr/pt-BR/0003-testes-simulam-reuso-do-worker.md) | Duas requisições na mesma instância do app, limpando o que o Octane limpa. O vazamento falha em milissegundos no CI, sem precisar do Swoole. |
+| [Pedidos por Action com lock de linha](docs/adr/pt-BR/0004-pedidos-por-action-com-lock-de-linha.md) | `lockForUpdate()` dentro de uma transação: dois pedidos ao mesmo tempo não vendem a última unidade duas vezes. A Action pode ser usada por jobs e comandos. |
+| [Benchmark honesto](docs/adr/pt-BR/0005-metodologia-do-benchmark.md) | Base com FPM otimizado (OPcache, workers fixos), mesmos limites, aquecimento e saída bruta publicada. |
+| [Skills, agentes e hooks](docs/adr/pt-BR/0006-plugin-skills-agentes-hooks.md) | Skills para fluxos que o usuário inicia, agentes só de leitura para análise, hooks para regras que não podem depender do modelo lembrar. |
+| [Portões de qualidade](docs/adr/pt-BR/0007-portoes-de-qualidade.md) | Tipos estritos, classes finais, `Model::shouldBeStrict()`, Larastan nível 8, Pint e testes de arquitetura do Pest, tudo no CI. |
+
+### Práticas aplicadas
+
+- **TDD**: o contrato e os vazamentos foram escritos como testes que falham antes do código que os faz passar (veja a tabela de commits).
+- **SOLID**: validação (`StoreOrderRequest`), regra de negócio (`PlaceOrder`), apresentação (`ProductResource`) e estado da requisição (`TenantContext`) têm, cada um, um único motivo para mudar. As dependências entram pelo construtor ou por parâmetro de método.
+- **Código limpo**: classes pequenas e finais, constantes com nome em vez de texto solto, nomes de teste que descrevem comportamento (`it('does not leak the tenant to the next request')`).
+- **Performance**: nada por requisição que possa ser feito uma vez por worker; eager loading (`with('items.product')`) e detecção de N+1 em desenvolvimento; colunas de tenant com índice; lock de linha só onde dinheiro e estoque mudam.
+- **Segurança**: filtro por tenant em toda consulta, entrada validada, nada de mass assignment com dado não validado, `.env` bloqueado para a IA por um hook.
 
 ## Benchmark
 
-Mesmo MySQL 8.4, mesmo volume (3000 produtos), mesmos limites (2 CPUs e 512 MB por app), k6 com 50 usuários por 30 s depois de 10 s de aquecimento.
+Mesmo MySQL 8.4, mesmo volume de dados (3000 produtos), mesmos limites (2 CPUs e 512 MB por app). k6 com 50 usuários virtuais por 30 s depois de 10 s de aquecimento. Base com FPM com OPcache (`validate_timestamps=0`) e 8 workers fixos; Octane com Swoole, 8 workers, config e rotas em cache.
 
 | Cenário | Lumen 10 no PHP-FPM | Laravel 13 Octane (Swoole) | |
 |---|---|---|---|
-| `GET /products/{id}` req/s | 569 | **1000** | 1,8x |
-| `GET /products/{id}` p50 | 87 ms | **20 ms** | 4,3x menor |
-| `GET /products/{id}` p95 | 184 ms | **90 ms** | 2x menor |
-| `GET /products?page=N` req/s | 530 | **596** | 1,1x |
-| `GET /products?page=N` p95 | 186 ms | **102 ms** | 1,8x menor |
+| `GET /products/{id}` vazão | 569 req/s | **1000 req/s** | 1,8x |
+| `GET /products/{id}` latência p50 | 87 ms | **20 ms** | 4,3x menor |
+| `GET /products/{id}` latência p95 | 184 ms | **90 ms** | 2x menor |
+| `GET /products?page=N` vazão | 530 req/s | **596 req/s** | 1,1x |
+| `GET /products?page=N` latência p95 | 186 ms | **102 ms** | 1,8x menor |
 
-Medido num notebook (Ryzen 7 5825U). O Lumen já é um microframework, então o ganho aqui é moderado; a listagem é dominada pelo banco. Quanto mais pesado o bootstrap do app, maior o ganho. Numa API em produção que migrei, o ganho foi bem maior. Como rodar está no [README em inglês](README.md#benchmark).
+Medido num notebook (AMD Ryzen 7 5825U, Docker 29, PHP 8.4, Swoole 6.2). Saída bruta em [`benchmark/results`](benchmark/results). As rodadas variam cerca de 10%. Os degraus de ~90 e ~180 ms vêm do limite de 2 CPUs e afetam os dois apps.
+
+**Como ler.** O Octane tira o custo do bootstrap de cada requisição. O Lumen já é um microframework, então a busca por id ganha 1,8x e a listagem, que é dominada por duas consultas SQL, quase não muda na vazão. Apps com bootstrap mais pesado (muitos providers, pacotes e configs) ganham bem mais; numa API em produção que migrei, o ganho foi bem maior. Meça o seu app:
+
+```bash
+cd benchmark
+docker compose up -d --build
+docker compose exec lumen php artisan migrate --seed --force
+docker compose exec octane php artisan migrate --seed --force
+./leak-check.sh http://localhost:8001   # Lumen no PHP-FPM
+./leak-check.sh http://localhost:8002   # Laravel Octane
+./run.sh                                # k6, saída em benchmark/results
+```
+
+## Desenvolvimento
+
+```bash
+cd examples/octane-api
+composer install --ignore-platform-req=ext-swoole
+vendor/bin/pest                 # 24 testes: contrato, reuso do worker, arquitetura, unitários
+vendor/bin/phpstan analyse      # Larastan nível 8
+vendor/bin/pint --test          # estilo de código
+../../tests/hooks/run.sh        # testes dos hooks do plugin
+```
+
+O CI roda tudo isso mais o ShellCheck a cada push e pull request.
+
+## Estrutura do repositório
+
+```
+.claude-plugin/   manifestos do plugin e do marketplace
+agents/           octane-auditor, laravel-reviewer, pest-writer
+skills/           migrate-lumen, octane-audit, laravel-claude-md
+hooks/ scripts/   protect-env, octane-guard, pint-on-edit
+templates/        modelo de CLAUDE.md para projetos Laravel
+examples/         lumen-api (legado) e octane-api (migrado)
+benchmark/        docker compose, cenários k6, checagem de vazamento, resultados brutos
+docs/adr/         registros de decisão de arquitetura (inglês e pt-BR)
+tests/hooks/      testes dos scripts dos hooks
+```
 
 ## Licença
 

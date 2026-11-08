@@ -87,7 +87,7 @@ HTTP request
 
 ### Decisions and why
 
-Every decision has an [Architecture Decision Record](docs/adr). In short:
+Every decision has an [Architecture Decision Record](docs/adr) (also [in Portuguese](docs/adr/pt-BR)). In short:
 
 | Decision | Why |
 |---|---|
@@ -156,7 +156,7 @@ hooks/ scripts/   protect-env, octane-guard, pint-on-edit
 templates/        CLAUDE.md template for Laravel projects
 examples/         lumen-api (legacy) and octane-api (migrated)
 benchmark/        docker compose, k6 scenarios, leak check, raw results
-docs/adr/         architecture decision records
+docs/adr/         architecture decision records (English and pt-BR)
 tests/hooks/      tests for the hook scripts
 ```
 

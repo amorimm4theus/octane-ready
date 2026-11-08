@@ -1,5 +1,7 @@
 # 0001. Keep the Lumen public API contract during the migration
 
+[Português](pt-BR/0001-manter-o-contrato-da-api.md)
+
 ## Context
 Clients already call the Lumen API: `/products`, `/orders`, no `/api` prefix, product JSON without a `data` wrapper. A framework migration that also changes the contract turns one risky change into two.
 

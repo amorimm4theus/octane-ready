@@ -1,5 +1,7 @@
 # 0004. Orders go through an Action with a transaction and row locks
 
+[Português](pt-BR/0004-pedidos-por-action-com-lock-de-linha.md)
+
 ## Context
 The Lumen controller validated input, opened a transaction, checked stock and built the response in one method. Two concurrent orders could both read "1 in stock" and both succeed.
 

@@ -1,5 +1,7 @@
 # 0006. Plugin design: skills for workflows, agents for analysis, hooks for guardrails
 
+[Português](pt-BR/0006-plugin-skills-agentes-hooks.md)
+
 ## Context
 Claude Code offers several extension points. Putting everything in one long prompt makes behavior hard to predict and hard to review.
 
