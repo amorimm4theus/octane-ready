@@ -7,7 +7,7 @@
 
 **Deixe apps Laravel prontos para o Octane com Claude Code.** Migre de Lumen para Laravel + Octane, encontre os vazamentos de estado que só aparecem no Swoole e prove com testes e um benchmark que você mesmo roda.
 
-[Read in English](README.md)
+[Read in English](README.md) · [Site e tutorial](https://amorimm4theus.github.io/octane-ready/pt-BR/)
 
 ---
 
@@ -15,14 +15,33 @@ Levar uma API PHP para o Laravel Octane tira o bootstrap do framework de cada re
 
 O repositório tem duas partes:
 
-1. **Um plugin do Claude Code** com skills, agentes e hooks para essa migração.
+1. **Um plugin do Claude Code** com skills, agentes e hooks para essa migração. As skills seguem o formato aberto [Agent Skills](https://agentskills.io), então também funcionam no Codex, Cursor, Gemini CLI, GitHub Copilot e outros agentes.
 2. **Um exemplo completo** contado pelo histórico de commits: uma API legada em Lumen, um port ingênuo que vaza, testes que expõem os vazamentos, a correção, uma refatoração e um benchmark que você mesmo roda.
 
-## Instalar o plugin
+## Instalar
+
+**Claude Code** (tudo: skills, agentes e hooks):
 
 ```bash
 claude plugin marketplace add amorimm4theus/octane-ready
 claude plugin install octane-ready@octane-ready
+```
+
+Depois, dentro do Claude Code: `/octane-ready:octane-audit`.
+
+**Codex, Cursor, Gemini CLI, GitHub Copilot, OpenCode e outros agentes** (as três skills):
+
+```bash
+npx skills add amorimm4theus/octane-ready
+```
+
+Ou copie as pastas de [`skills/`](skills) para a pasta de skills do seu agente (por exemplo `.claude/skills/` ou `.agents/skills/`). Cada skill é autocontida: as instruções de agente que ela usa estão na pasta `references/` dela. Depois peça ao agente para usar a skill `octane-audit`. Hooks são um recurso do Claude Code e não são instalados assim.
+
+**Sem instalar nada**: cole isto em qualquer agente de código, na raiz de um projeto Laravel:
+
+```text
+Audite este projeto Laravel procurando bugs que só aparecem no Laravel Octane, onde um worker atende muitas requisições e o estado pode vazar entre usuários. Siga este checklist, só lendo o código: https://raw.githubusercontent.com/amorimm4theus/octane-ready/main/skills/octane-audit/references/auditor.md
+Não altere nenhum código. Mostre primeiro os achados críticos com arquivo:linha e depois o que você conferiu e está seguro.
 ```
 
 | Tipo | Nome | Para que serve |
@@ -36,6 +55,8 @@ claude plugin install octane-ready@octane-ready
 | Hook | `protect-env` | Impede ler ou escrever arquivos `.env` (o `.env.example` é liberado) |
 | Hook | `octane-guard` | Em apps com `laravel/octane`, avisa o Claude logo depois que ele escreve uma propriedade estática em `app/`, com aviso extra para memos indexados por `spl_object_id` |
 | Hook | `pint-on-edit` | Formata cada arquivo PHP editado com o Pint do projeto |
+
+Agentes e hooks são recursos do Claude Code. Em outros harnesses as skills usam as mesmas instruções, guardadas na pasta `references/` de cada skill e sincronizadas a partir de `agents/` pelo `scripts/sync-skills.sh` (conferido no CI).
 
 Funciona junto com o [Laravel Boost](https://github.com/laravel/boost): o Boost cobre as diretrizes gerais do Laravel, este kit fica focado em migração e workers de longa duração. Os hooks só precisam de `php` no PATH.
 
@@ -152,11 +173,12 @@ O CI roda tudo isso mais o ShellCheck a cada push e pull request.
 ```
 .claude-plugin/   manifestos do plugin e do marketplace
 agents/           octane-auditor, laravel-reviewer, pest-writer
-skills/           migrate-lumen, octane-audit, laravel-claude-md
+skills/           migrate-lumen, octane-audit, laravel-claude-md (formato Agent Skills)
 hooks/ scripts/   protect-env, octane-guard, pint-on-edit
 templates/        modelo de CLAUDE.md para projetos Laravel
 examples/         lumen-api (legado) e octane-api (migrado)
 benchmark/        docker compose, cenários k6, checagem de vazamento, resultados brutos
+site/             site no GitHub Pages (inglês e português)
 docs/adr/         registros de decisão de arquitetura (inglês e pt-BR)
 tests/hooks/      testes dos scripts dos hooks
 ```

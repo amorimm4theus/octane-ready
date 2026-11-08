@@ -71,3 +71,15 @@ jobs:
 
       - name: Hook tests
         run: tests/hooks/run.sh
+
+      - name: Skills are self-contained and in sync with agents/ and templates/
+        run: scripts/sync-skills.sh --check
+
+      - name: Skills follow the Agent Skills format (name matches folder, description set)
+        run: |
+          for f in skills/*/SKILL.md; do
+            dir=$(basename "$(dirname "$f")")
+            grep -qx "name: $dir" "$f" || { echo "missing or wrong name in $f"; exit 1; }
+            grep -q '^description: .\+' "$f" || { echo "missing description in $f"; exit 1; }
+            echo "ok $f"
+          done

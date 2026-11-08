@@ -7,7 +7,7 @@
 
 **Make Laravel apps Octane-ready with Claude Code.** Migrate Lumen to Laravel + Octane, catch the state leaks that only appear under Swoole, and prove it with tests and a reproducible benchmark.
 
-[Leia em português](README.pt-BR.md)
+[Leia em português](README.pt-BR.md) · [Website and tutorial](https://amorimm4theus.github.io/octane-ready/)
 
 ---
 
@@ -15,14 +15,33 @@ Moving a PHP API to Laravel Octane removes the framework bootstrap from every re
 
 This repository has two parts:
 
-1. **A Claude Code plugin** with skills, agents and hooks for that migration.
+1. **A Claude Code plugin** with skills, agents and hooks for that migration. The skills follow the open [Agent Skills](https://agentskills.io) format, so they also work in Codex, Cursor, Gemini CLI, GitHub Copilot and other agents.
 2. **A worked example** that shows the whole path in its commit history: a legacy Lumen API, a naive port that leaks, tests that expose the leaks, the fix, a refactor, and a benchmark you can run yourself.
 
-## Install the plugin
+## Install
+
+**Claude Code** (everything: skills, agents and hooks):
 
 ```bash
 claude plugin marketplace add amorimm4theus/octane-ready
 claude plugin install octane-ready@octane-ready
+```
+
+Then, inside Claude Code: `/octane-ready:octane-audit`.
+
+**Codex, Cursor, Gemini CLI, GitHub Copilot, OpenCode and other agents** (the three skills):
+
+```bash
+npx skills add amorimm4theus/octane-ready
+```
+
+Or copy the folders in [`skills/`](skills) into your agent's skills folder (for example `.claude/skills/` or `.agents/skills/`). Each skill is self-contained: the agent instructions it needs are in its `references/` folder. Then ask your agent to use the `octane-audit` skill. Hooks are a Claude Code feature and are not installed this way.
+
+**No install**: paste this into any coding agent, in the root of a Laravel project:
+
+```text
+Audit this Laravel project for bugs that only appear under Laravel Octane, where one worker serves many requests and state can leak between users. Follow this checklist, read-only: https://raw.githubusercontent.com/amorimm4theus/octane-ready/main/skills/octane-audit/references/auditor.md
+Do not change any code. Show critical findings first with file:line, then what you checked and found safe.
 ```
 
 | Type | Name | Purpose |
@@ -36,6 +55,8 @@ claude plugin install octane-ready@octane-ready
 | Hook | `protect-env` | Blocks reading or writing `.env` files (`.env.example` is allowed) |
 | Hook | `octane-guard` | In apps with `laravel/octane`, warns Claude right after it writes a static property in `app/`, with an extra warning for memos keyed by `spl_object_id` |
 | Hook | `pint-on-edit` | Formats each edited PHP file with the project's Pint |
+
+Agents and hooks are Claude Code features. In other harnesses the skills fall back to the same instructions, kept in each skill's `references/` folder and synced from `agents/` by `scripts/sync-skills.sh` (checked in CI).
 
 Works alongside [Laravel Boost](https://github.com/laravel/boost): Boost covers general Laravel guidelines, this kit stays focused on migration and long-lived workers. Hooks only need `php` on the PATH.
 
@@ -152,11 +173,12 @@ CI runs all of the above plus ShellCheck on every push and pull request.
 ```
 .claude-plugin/   plugin and marketplace manifests
 agents/           octane-auditor, laravel-reviewer, pest-writer
-skills/           migrate-lumen, octane-audit, laravel-claude-md
+skills/           migrate-lumen, octane-audit, laravel-claude-md (Agent Skills format)
 hooks/ scripts/   protect-env, octane-guard, pint-on-edit
 templates/        CLAUDE.md template for Laravel projects
 examples/         lumen-api (legacy) and octane-api (migrated)
 benchmark/        docker compose, k6 scenarios, leak check, raw results
+site/             GitHub Pages website (English and pt-BR)
 docs/adr/         architecture decision records (English and pt-BR)
 tests/hooks/      tests for the hook scripts
 ```

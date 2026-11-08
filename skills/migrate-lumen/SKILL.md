@@ -1,4 +1,5 @@
 ---
+name: migrate-lumen
 description: Migrates a Lumen application to Laravel (optionally with Octane) step by step, keeping the same routes and behavior, and verifying with tests and a request-by-request comparison. Use when asked to migrate, upgrade or port a Lumen app to Laravel or Laravel Octane.
 argument-hint: "[path-to-lumen-app] [--octane]"
 ---
@@ -38,13 +39,13 @@ Use [checklist.md](checklist.md) as the mapping reference.
 
 ## 3. Verify behavior
 
-- Run the existing test suite against the new app. Port tests to Pest if the project wants it (use the `pest-writer` agent).
+- Run the existing test suite against the new app. Port tests to Pest if the project wants it (use the `pest-writer` agent, or follow [references/pest-writer.md](references/pest-writer.md)).
 - Compare responses: run both apps and replay the same requests (status code + JSON body) for every route. Report every difference.
 
 ## 4. Octane (only with --octane or if the user asks)
 
 1. `composer require laravel/octane` and `php artisan octane:install --server=swoole` (or frankenphp/roadrunner).
-2. Run the `octane-auditor` agent on the ported code. Legacy Lumen code often keeps request data in static properties; this is harmless under PHP-FPM and a data leak under Octane.
+2. Run the `octane-auditor` agent on the ported code (or follow [references/auditor.md](references/auditor.md) yourself). Legacy Lumen code often keeps request data in static properties; this is harmless under PHP-FPM and a data leak under Octane.
 3. Fix every critical/high finding, then prove it: request A with tenant/user X, request B without it, the response of B must not contain X.
 4. Benchmark before/after with the same CPU/RAM limits, same database and OPcache enabled on the FPM baseline. Report real numbers only, with the hardware and limits used.
 
