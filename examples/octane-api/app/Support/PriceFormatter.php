@@ -1,33 +1,32 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Support;
 
-use Illuminate\Http\Request;
-
 /**
- * Legacy pattern: a singleton that captures the Request in its constructor.
- * Under a long-lived worker the first request's locale is used forever.
+ * Formats prices stored in cents.
+ *
+ * Stateless on purpose: the locale is an argument, never captured from the
+ * Request, so one instance can serve every request in a long-lived worker.
  */
-class PriceFormatter
+final class PriceFormatter
 {
-    private string $locale;
+    public const PT_BR = 'pt_BR';
 
-    public function __construct(Request $request)
-    {
-        $this->locale = str_starts_with((string) $request->header('Accept-Language'), 'en') ? 'en' : 'pt_BR';
-    }
+    public const EN = 'en';
 
-    public function format(int $cents): string
+    public function format(int $cents, string $locale): string
     {
         $value = $cents / 100;
 
-        return $this->locale === 'en'
+        return $locale === self::EN
             ? '$'.number_format($value, 2, '.', ',')
             : 'R$ '.number_format($value, 2, ',', '.');
     }
 
-    public function locale(): string
+    public static function localeFrom(?string $acceptLanguage): string
     {
-        return $this->locale;
+        return str_starts_with((string) $acceptLanguage, 'en') ? self::EN : self::PT_BR;
     }
 }

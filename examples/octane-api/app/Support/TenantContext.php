@@ -1,23 +1,28 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Support;
 
 /**
- * Legacy pattern: request-scoped data kept in a static property.
- * Fine under PHP-FPM (the process dies after each request).
- * Leaks between requests under a long-lived worker (Octane/Swoole).
+ * The tenant of the current request.
+ *
+ * Bound with $app->scoped(): Octane builds a fresh instance for every request,
+ * so a request without the tenant header never inherits the previous tenant.
  */
-class TenantContext
+final class TenantContext
 {
-    private static ?string $tenant = null;
+    public const DEFAULT = 'public';
 
-    public static function set(string $tenant): void
+    private string $tenant = self::DEFAULT;
+
+    public function set(string $tenant): void
     {
-        self::$tenant = $tenant;
+        $this->tenant = $tenant;
     }
 
-    public static function id(): string
+    public function id(): string
     {
-        return self::$tenant ?? 'public';
+        return $this->tenant;
     }
 }
